@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post Your Thoughts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Literata:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14151A;
+    --bg-soft: #1B1D24;
+    --paper: #FAF6EC;
+    --paper-dim: #EFE9DA;
+    --ink: #201F1C;
+    --muted: #8A8778;
+    --thread: #3A3D46;
+    --accent: #D9A62E;
+    --accent-2: #6E8C6A;
+    --accent-3: #B4593C;
+    --danger: #B4593C;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(217,166,46,0.06), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(110,140,106,0.06), transparent 45%);
+    color: var(--paper);
+    font-family: 'Literata', serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .scene{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 20px 120px;
+  }
+  .masthead{
+    text-align:center;
+    margin-bottom: 44px;
+  }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  h1{
+    font-family: 'Literata', serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(34px, 6vw, 52px);
+    line-height: 1.05;
+    margin: 0 0 14px;
+    color: var(--paper);
+  }
+  .sub{
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* composer */
+  .composer{
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 3px;
+    padding: 22px 22px 18px;
+    box-shadow: 0 18px 40px -18px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.04) inset;
+    position: relative;
+    margin-bottom: 56px;
+  }
+  .composer::before{
+    content:"";
+    position:absolute;
+    top:-9px; left: 28px;
+    width: 56px; height: 18px;
+    background: rgba(217,166,46,0.55);
+    transform: rotate(-3deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .row{ margin-bottom: 12px; }
+  label{
+    display:block;
+    font-family:'Space Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input[type=text], textarea{
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid rgba(32,31,28,0.18);
+    background: transparent;
+    font-family: 'Literata', serif;
+    font-size: 16px;
+    color: var(--ink);
+    padding: 6px 2px;
+    resize: vertical;
+    outline: none;
+  }
+  input[type=text]{ font-weight: 500; }
+  textarea{ min-height: 84px; line-height: 1.5; }
+  input[type=text]:focus, textarea:focus{
+    border-bottom-color: var(--accent-3);
+  }
+  .composer-foot{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    margin-top: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .img-controls{ display:flex; align-items:center; gap:10px; }
+  .img-btn{
+    font-family:'Space Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+    background: var(--paper-dim);
+    border: 1px solid rgba(32,31,28,0.15);
+    padding: 8px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .img-btn:hover{ background: #e7dfc7; }
+  #imgInput{ display:none; }
+  .thumb-wrap{ position:relative; display:none; }
+  .thumb-wrap.show{ display:inline-flex; }
+  .thumb-wrap img{
+    height: 40px; width: 40px; object-fit: cover; border-radius: 2px;
+    border: 1px solid rgba(32,31,28,0.2);
+  }
+  .thumb-remove{
+    position:absolute; top:-6px; right:-6px;
+    width:16px; height:16px; border-radius:50%;
+    background: var(--danger); color:#fff; border:none;
+    font-size:10px; line-height:16px; cursor:pointer; padding:0;
+  }
+  .post-btn{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--paper);
+    background: var(--ink);
+    border: none;
+    padding: 11px 22px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  .post-btn:hover{ background:#3a3833; }
+  .post-btn:active{ transform: scale(0.97); }
+  .post-btn:disabled{ opacity:0.5; cursor:default; }
+  .hint{
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 8px;
+    display:none;
+  }
+  .hint.show{ display:block; }
+
+  /* feed */
+  .feed-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 22px;
+    font-family:'Space Mono', monospace;
+  }
+  .feed-title{ font-size: 12px; letter-spacing:0.14em; text-transform:uppercase; color: var(--muted); }
+  .refresh{
+    background:none; border:none; color: var(--accent-2);
+    font-family:'Space Mono', monospace; font-size: 11px; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .refresh .dot{
+    width:6px; height:6px; border-radius:50%; background: var(--accent-2);
+    animation: pulse 2.2s infinite ease-in-out;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:0.4; } 50%{ opacity:1; } }
+
+  .thread{
+    position: relative;
+    padding-left: 22px;
+  }
+  .thread::before{
+    content:"";
+    position:absolute;
+    left: 5px; top: 6px; bottom: 6px;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--thread) 6%, var(--thread) 94%, transparent);
+  }
+  .empty{
+    font-family:'Space Mono', monospace;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 30px 0 30px 4px;
+  }
+
+  .card{
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 2px;
+    padding: 18px 18px 16px;
+    margin-bottom: 26px;
+    box-shadow: 0 14px 28px -16px rgba(0,0,0,0.55);
+    animation: rise 0.4s ease both;
+  }
+  @keyframes rise{ from{ opacity:0; transform: translateY(8px);} to{ opacity:1; transform:none; } }
+  .card::before{
+    content:"";
+    position:absolute;
+    left: -22px; top: 22px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    top:-7px;
+    width: 42px; height: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  .card:nth-child(3n)::after{ background: rgba(217,166,46,0.55); left: 20px; transform: rotate(-2deg); }
+  .card:nth-child(3n+1)::after{ background: rgba(110,140,106,0.55); left: 60%; transform: rotate(2deg); }
+  .card:nth-child(3n+2)::after{ background: rgba(180,89,60,0.5); left: 30px; transform: rotate(1deg); }
+
+  .card-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 8px; gap: 10px;
+  }
+  .card-name{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .card-time{
+    font-family:'Space Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .card-text{
+    font-size: 16px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0 0 10px;
+  }
+  .card-img{
+    max-width: 100%;
+    border-radius: 2px;
+    display:block;
+    border: 1px solid rgba(32,31,28,0.12);
+  }
+
+  footer{
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 40px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card{ animation:none; }
+    .refresh .dot{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="masthead">
+    <div class="eyebrow">a public notebook · no login</div>
+    <h1>Post Your Thoughts</h1>
+    <p class="sub">Say it plain — text, a picture, whatever's on your mind. Enter a name, post, and it's up for everyone.</p>
+  </div>
+
+  <div class="composer">
+    <div class="row">
+      <label for="nameInput">Your name</label>
+      <input type="text" id="nameInput" placeholder="e.g. Anon River" maxlength="40">
+    </div>
+    <div class="row">
+      <label for="textInput">What's on your mind?</label>
+      <textarea id="textInput" placeholder="Type freely..." maxlength="1200"></textarea>
+    </div>
+    <div class="composer-foot">
+      <div class="img-controls">
+        <button type="button" class="img-btn" id="imgBtn">＋ add an image</button>
+        <input type="file" id="imgInput" accept="image/*">
+        <span class="thumb-wrap" id="thumbWrap">
+          <img id="thumbImg" src="" alt="preview">
+          <button type="button" class="thumb-remove" id="thumbRemove">×</button>
+        </span>
+      </div>
+      <button type="button" class="post-btn" id="postBtn">Post it</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="feed-head">
+    <span class="feed-title">The Feed</span>
+    <button class="refresh" id="refreshBtn"><span class="dot"></span> live</button>
+  </div>
+
+  <div class="thread">
+    <div id="feed"></div>
+  </div>
+
+  <footer>everything posted here is visible to everyone who opens this page</footer>
+</div>
+
+<script>
+(function(){
+  const PREFIX = 'post:';
+  const feedEl = document.getElementById('feed');
+  const nameInput = document.getElementById('nameInput');
+  const textInput = document.getElementById('textInput');
+  const postBtn = document.getElementById('postBtn');
+  const hint = document.getElementById('hint');
+  const imgBtn = document.getElementById('imgBtn');
+  const imgInput = document.getElementById('imgInput');
+  const thumbWrap = document.getElementById('thumbWrap');
+  const thumbImg = document.getElementById('thumbImg');
+  const thumbRemove = document.getElementById('thumbRemove');
+  const refreshBtn = document.getElementById('refreshBtn');
+
+  let pendingImage = null; // dataURL
+  let knownPosts = new Map(); // key -> post
+
+  function showHint(msg){
+    hint.textContent = msg;
+    hint.classList.add('show');
+    setTimeout(()=> hint.classList.remove('show'), 4000);
+  }
+
+  imgBtn.addEventListener('click', ()=> imgInput.click());
+
+  imgInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ showHint('That file is not an image.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 640;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        let quality = 0.75;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while(dataUrl.length > 1400000 && quality > 0.3){
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        if(dataUrl.length > 1400000){
+          showHint('That image is too large even after compressing. Try a smaller one.');
+          return;
+        }
+        pendingImage = dataUrl;
+        thumbImg.src = dataUrl;
+        thumbWrap.classList.add('show');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  thumbRemove.addEventListener('click', ()=>{
+    pendingImage = null;
+    imgInput.value = '';
+    thumbWrap.classList.remove('show');
+  });
+
+  function timeAgo(ts){
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if(s < 45) return 'just now';
+    if(s < 90) return '1 min ago';
+    if(s < 3600) return Math.floor(s/60) + ' min ago';
+    if(s < 7200) return '1 hr ago';
+    if(s < 86400) return Math.floor(s/3600) + ' hrs ago';
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, {month:'short', day:'numeric'}) + ' · ' + d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+  }
+
+  function render(){
+    const posts = Array.from(knownPosts.values()).sort((a,b)=> b.ts - a.ts);
+    feedEl.innerHTML = '';
+    if(posts.length === 0){
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'Nothing here yet. Be the first to think out loud.';
+      feedEl.appendChild(e);
+      return;
+    }
+    for(const p of posts){
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const head = document.createElement('div');
+      head.className = 'card-head';
+      const nm = document.createElement('span');
+      nm.className = 'card-name';
+      nm.textContent = p.name || 'Anonymous';
+      const tm = document.createElement('span');
+      tm.className = 'card-time';
+      tm.textContent = timeAgo(p.ts);
+      head.appendChild(nm); head.appendChild(tm);
+      card.appendChild(head);
+
+      if(p.text){
+        const txt = document.createElement('p');
+        txt.className = 'card-text';
+        txt.textContent = p.text;
+        card.appendChild(txt);
+      }
+
+      if(p.image){
+        const img = document.createElement('img');
+        img.className = 'card-img';
+        img.src = p.image;
+        img.alt = 'attached image';
+        card.appendChild(img);
+      }
+
+      feedEl.appendChild(card);
+    }
+  }
+
+  async function loadPosts(){
+    try{
+      const listRes = await window.storage.list(PREFIX, true);
+      const keys = (listRes && listRes.keys) || [];
+      const results = await Promise.all(keys.map(async (k)=>{
+        try{
+          const r = await window.storage.get(k, true);
+          return r ? r.value : null;
+        }catch(e){ return null; }
+      }));
+      let changed = false;
+      results.forEach((val, i)=>{
+        if(!val) return;
+        try{
+          const post = JSON.parse(val);
+          if(!knownPosts.has(keys[i])){ changed = true; }
+          knownPosts.set(keys[i], post);
+        }catch(e){}
+      });
+      if(changed || knownPosts.size !== keys.length){
+        render();
+      }
+    }catch(e){
+      console.error('load failed', e);
+    }
+  }
+
+  async function submitPost(){
+    const name = nameInput.value.trim().slice(0,40) || 'Anonymous';
+    const text = textInput.value.trim().slice(0,1200);
+    if(!text && !pendingImage){
+      showHint('Write something or add an image first.');
+      return;
+    }
+    postBtn.disabled = true;
+    postBtn.textContent = 'Posting...';
+    const key = PREFIX + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    const post = { name, text, image: pendingImage, ts: Date.now() };
+    try{
+      const res = await window.storage.set(key, JSON.stringify(post), true);
+      if(!res){ throw new Error('no result'); }
+      knownPosts.set(key, post);
+      render();
+      nameInput.value = '';
+      textInput.value = '';
+      pendingImage = null;
+      imgInput.value = '';
+      thumbWrap.classList.remove('show');
+    }catch(e){
+      showHint("Couldn't post. Check your connection and try again.");
+    }finally{
+      postBtn.disabled = false;
+      postBtn.textContent = 'Post it';
+    }
+  }
+
+  postBtn.addEventListener('click', submitPost);
+  textInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitPost();
+  });
+  refreshBtn.addEventListener('click', loadPosts);
+
+  loadPosts();
+  setInterval(loadPosts, 7000);
+})();
+</script>
+</body>
+</html>
