@@ -277,6 +277,26 @@
     margin-top: 40px;
   }
 
+  .setup-banner{
+    display:none;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: #2a1d0f;
+    background: var(--accent);
+    border-radius: 3px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .setup-banner.show{ display:block; }
+  .conn-note{
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: -6px;
+  }
+
   @media (prefers-reduced-motion: reduce){
     .card{ animation:none; }
     .refresh .dot{ animation:none; }
@@ -289,6 +309,10 @@
     <div class="eyebrow">a public notebook · no login</div>
     <h1>Post Your Thoughts</h1>
     <p class="sub">Say it plain — text, a picture, whatever's on your mind. Enter a name, post, and it's up for everyone.</p>
+  </div>
+
+  <div class="setup-banner" id="setupBanner">
+    ⚠ Not connected yet — paste your Firebase config near the top of the &lt;script type="module"&gt; block (see the comment in the code) and refresh.
   </div>
 
   <div class="composer">
@@ -326,9 +350,42 @@
   <footer>everything posted here is visible to everyone who opens this page</footer>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ======================================================================
+   PASTE YOUR FIREBASE CONFIG HERE.
+   Get this from: Firebase Console → Project settings → Your apps → Web app
+   (console.firebase.google.com → create a project → build → Firestore Database)
+   ====================================================================== */
+// Import the functions you need from the SDKs you need
+
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDgbmwUcC4VdQtmflZTV22eHAF03dR8iqs",
+  authDomain: "post-your-thoughts-d0a34.firebaseapp.com",
+  projectId: "post-your-thoughts-d0a34",
+  storageBucket: "post-your-thoughts-d0a34.firebasestorage.app",
+  messagingSenderId: "279547093394",
+  appId: "1:279547093394:web:55cad126d3b0a4cd3f214b",
+  measurementId: "G-XRHT17WVKF"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+/* ====================================================================== */
+
+const db = getFirestore(app);
+
 (function(){
-  const PREFIX = 'post:';
   const feedEl = document.getElementById('feed');
   const nameInput = document.getElementById('nameInput');
   const textInput = document.getElementById('textInput');
@@ -342,7 +399,7 @@
   const refreshBtn = document.getElementById('refreshBtn');
 
   let pendingImage = null; // dataURL
-  let knownPosts = new Map(); // key -> post
+  let knownPosts = new Map(); // docId -> post
 
   function showHint(msg){
     hint.textContent = msg;
@@ -448,34 +505,36 @@
     }
   }
 
-  async function loadPosts(){
+  function startListening(){
+    if(!db) return;
     try{
-      const listRes = await window.storage.list(PREFIX, true);
-      const keys = (listRes && listRes.keys) || [];
-      const results = await Promise.all(keys.map(async (k)=>{
-        try{
-          const r = await window.storage.get(k, true);
-          return r ? r.value : null;
-        }catch(e){ return null; }
-      }));
-      let changed = false;
-      results.forEach((val, i)=>{
-        if(!val) return;
-        try{
-          const post = JSON.parse(val);
-          if(!knownPosts.has(keys[i])){ changed = true; }
-          knownPosts.set(keys[i], post);
-        }catch(e){}
-      });
-      if(changed || knownPosts.size !== keys.length){
+      const q = query(collection(db, 'posts'), orderBy('ts', 'desc'), limit(200));
+      onSnapshot(q, (snap)=>{
+        knownPosts.clear();
+        snap.forEach((docSnap)=>{
+          const data = docSnap.data();
+          knownPosts.set(docSnap.id, {
+            name: data.name,
+            text: data.text,
+            image: data.image || null,
+            ts: data.ts && data.ts.toMillis ? data.ts.toMillis() : Date.now()
+          });
+        });
         render();
-      }
+      }, (err)=>{
+        console.error('listen failed', err);
+        showHint("Can't reach the board right now.");
+      });
     }catch(e){
-      console.error('load failed', e);
+      console.error(e);
     }
   }
 
   async function submitPost(){
+    if(!db){
+      showHint('This page is not connected to a backend yet — see the setup notice above.');
+      return;
+    }
     const name = nameInput.value.trim().slice(0,40) || 'Anonymous';
     const text = textInput.value.trim().slice(0,1200);
     if(!text && !pendingImage){
@@ -484,20 +543,18 @@
     }
     postBtn.disabled = true;
     postBtn.textContent = 'Posting...';
-    const key = PREFIX + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    const post = { name, text, image: pendingImage, ts: Date.now() };
     try{
-      const res = await window.storage.set(key, JSON.stringify(post), true);
-      if(!res){ throw new Error('no result'); }
-      knownPosts.set(key, post);
-      render();
+      await addDoc(collection(db, 'posts'), {
+        name, text, image: pendingImage || null, ts: serverTimestamp()
+      });
       nameInput.value = '';
       textInput.value = '';
       pendingImage = null;
       imgInput.value = '';
       thumbWrap.classList.remove('show');
     }catch(e){
-      showHint("Couldn't post. Check your connection and try again.");
+      console.error(e);
+      showHint("Couldn't post. Check your connection and Firestore rules.");
     }finally{
       postBtn.disabled = false;
       postBtn.textContent = 'Post it';
@@ -508,10 +565,10 @@
   textInput.addEventListener('keydown', (e)=>{
     if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitPost();
   });
-  refreshBtn.addEventListener('click', loadPosts);
+  refreshBtn.addEventListener('click', ()=> render());
 
-  loadPosts();
-  setInterval(loadPosts, 7000);
+  render();
+  startListening();
 })();
 </script>
 </body>
