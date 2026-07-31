@@ -531,33 +531,34 @@ const db = getFirestore(app);
   }
 
   async function submitPost(){
-    if(!db){
-      showHint('This page is not connected to a backend yet — see the setup notice above.');
-      return;
-    }
     const name = nameInput.value.trim().slice(0,40) || 'Anonymous';
     const text = textInput.value.trim().slice(0,1200);
     if(!text && !pendingImage){
       showHint('Write something or add an image first.');
       return;
     }
-    postBtn.disabled = true;
-    postBtn.textContent = 'Posting...';
+    postBtn.disabled=true;
+    postBtn.textContent='Posting...';
     try{
-      await addDoc(collection(db, 'posts'), {
-        name, text, image: pendingImage || null, ts: serverTimestamp()
+      const response=await fetch('https://post-api-ir3m.onrender.com/posts',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name,text,image:pendingImage||null})
       });
-      nameInput.value = '';
-      textInput.value = '';
-      pendingImage = null;
-      imgInput.value = '';
+      const result=await response.json();
+      if(!response.ok) throw new Error(result.message||'Failed to post');
+
+      nameInput.value='';
+      textInput.value='';
+      pendingImage=null;
+      imgInput.value='';
       thumbWrap.classList.remove('show');
     }catch(e){
       console.error(e);
-      showHint("Couldn't post. Check your connection and Firestore rules.");
+      showHint(e.message||"Couldn't post.");
     }finally{
-      postBtn.disabled = false;
-      postBtn.textContent = 'Post it';
+      postBtn.disabled=false;
+      postBtn.textContent='Post it';
     }
   }
 
